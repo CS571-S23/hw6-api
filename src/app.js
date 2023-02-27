@@ -40,10 +40,10 @@ const EXISTS_POST_SQL = 'SELECT * FROM BadgerMessage WHERE chatroom = ? AND id =
 const EXISTS_USER_SQL = 'SELECT * FROM BadgerUser WHERE username = ?;'
 const REGISTER_SQL = "INSERT INTO BadgerUser(username, passwd, salt, xcsid, wiscUsername) VALUES(?, ?, ?, ?, ?);";
 const GET_POSTS_SQL = "SELECT * From BadgerMessage WHERE chatroom = ? ORDER BY id DESC LIMIT 25;"
-const POST_SQL = "INSERT INTO BadgerMessage(poster, title, content, chatroom) VALUES (?, ?, ?, ?) RETURNING id;"
+const POST_SQL = "INSERT INTO BadgerMessage(poster, title, content, chatroom, created) VALUES (?, ?, ?, ?, ?) RETURNING id;"
 const DELETE_POST_SQL = "DELETE FROM BadgerMessage WHERE id = ?;"
 
-const CHATROOM_NAMES = ["Arboretum", "Capitol", "Chazen", "Epic", "HenryVilas", "MemorialTerrace", "Mendota", "Olbrich"]
+const CHATROOM_NAMES = ["Bascom", "Brogden", "Chamberlin", "Grainger", "Ingraham", "VanVleck", "Vilas"]
 
 app.use(cookieParser());
 
@@ -156,8 +156,8 @@ app.use(function (req, res, next) {
 });
 
 app.post('/api/register', (req, res) => {
-    const username = req.body.username;
-    const password = req.body.password;
+    const username = req.body.username?.trim();
+    const password = req.body.password?.trim();
     if (username && password) {
         if (username.length <= 64 && password.length <= 128) {
             db.prepare(EXISTS_USER_SQL).run(username).all((err, rows) => {
@@ -213,8 +213,8 @@ app.post('/api/register', (req, res) => {
 });
 
 app.post('/api/login', (req, res) => {
-    const username = req.body.username;
-    const password = req.body.password;
+    const username = req.body.username?.trim();
+    const password = req.body.password?.trim();
 
     if (username && password) {
         db.prepare(EXISTS_USER_SQL).run(username).all((err, rows) => {
@@ -237,7 +237,11 @@ app.post('/api/login', (req, res) => {
                     const idAndUsername = (({ id, username }) => ({ id, username }))(dbUser);
                     const jwtToken = generateAccessToken(idAndUsername);
                     res.status(200).cookie('badgerchat_auth', jwtToken, { sameSite: "none", secure: "true", maxAge: 3600000, httpOnly: true }).send({
-                        msg: "Successfully authenticated."
+                        msg: "Successfully authenticated.",
+                        user: {
+                            id: dbUser.id,
+                            username: dbUser.username,
+                        }
                     });
                 } else {
                     res.status(401).send({
@@ -251,6 +255,12 @@ app.post('/api/login', (req, res) => {
             msg: 'A request must contain a \'username\' and \'password\''
         })
     }
+});
+
+app.post('/api/logout', (req, res) => {
+    res.status(200).cookie('badgerchat_auth', "goodbye", { sameSite: "none", secure: "true", maxAge: 1, httpOnly: true }).send({
+        msg: "You have been logged out! Goodbye."
+    });
 });
 
 app.get('/api/chatroom', (req, res) => {
@@ -281,14 +291,14 @@ app.get('/api/chatroom/:chatroomName/messages', (req, res) => {
 });
 
 app.post('/api/chatroom/:chatroomName/messages', authenticateToken, (req, res) => {
-    const title = req.body.title;
-    const content = req.body.content;
+    const title = req.body.title?.trim();
+    const content = req.body.content?.trim();
     const chatroomName = req.params.chatroomName;
 
     if (CHATROOM_NAMES.includes(chatroomName)) {
         if (title && content) {
             if (title.length <= 128 && content.length <= 1024) {
-                db.prepare(POST_SQL).get(req.user.username, title, content, chatroomName, (err, resp) => {
+                db.prepare(POST_SQL).get(req.user.username, title, content, chatroomName, new Date(), (err, resp) => {
                     if (!err) {
                         res.status(200).send({
                             msg: "Successfully posted message!",

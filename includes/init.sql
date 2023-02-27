@@ -11,5 +11,6 @@ CREATE TABLE IF NOT EXISTS BadgerMessage (
 	poster TEXT NOT NULL,
 	title TEXT NOT NULL,
 	content TEXT NOT NULL,
-	chatroom TEXT NOT NULL
+	chatroom TEXT NOT NULL,
+	created TIMESTAMP NOT NULL
 );
