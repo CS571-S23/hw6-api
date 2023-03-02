@@ -185,7 +185,7 @@ app.post('/api/register', (req, res) => {
                                 if (!err && rows.length === 1) {
                                     const idAndUsername = (({ id, username }) => ({ id, username }))(rows[0]);
                                     const jwtToken = generateAccessToken(idAndUsername);
-                                    res.status(200).cookie('badgerchat_auth', jwtToken, { sameSite: "none", secure: "true", maxAge: 3600000, httpOnly: true }).send({
+                                    res.status(200).cookie('badgerchat_auth', jwtToken, { domain: 'cs571.org', sameSite: "none", secure: "true", maxAge: 3600000, httpOnly: true }).send({
                                         msg: "Successfully authenticated.",
                                         user: idAndUsername
                                     });
@@ -236,7 +236,7 @@ app.post('/api/login', (req, res) => {
                 if (guessPass === dbPass) {
                     const idAndUsername = (({ id, username }) => ({ id, username }))(dbUser);
                     const jwtToken = generateAccessToken(idAndUsername);
-                    res.status(200).cookie('badgerchat_auth', jwtToken, { sameSite: "none", secure: "true", maxAge: 3600000, httpOnly: true }).send({
+                    res.status(200).cookie('badgerchat_auth', jwtToken, { domain: 'cs571.org', sameSite: "none", secure: "true", maxAge: 3600000, httpOnly: true }).send({
                         msg: "Successfully authenticated.",
                         user: {
                             id: dbUser.id,
@@ -258,7 +258,7 @@ app.post('/api/login', (req, res) => {
 });
 
 app.post('/api/logout', (req, res) => {
-    res.status(200).cookie('badgerchat_auth', "goodbye", { sameSite: "none", secure: "true", maxAge: 1, httpOnly: true }).send({
+    res.status(200).cookie('badgerchat_auth', "goodbye", { domain: 'cs571.org', sameSite: "none", secure: "true", maxAge: 1, httpOnly: true }).send({
         msg: "You have been logged out! Goodbye."
     });
 });
